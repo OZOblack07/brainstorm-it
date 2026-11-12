@@ -10,7 +10,7 @@ npm test                          # runs the anti-cheat engine tests
 npm run dev                       # http://localhost:3000
 ```
 ## 2. Supabase (free)
-1. supabase.com → New project. 2. SQL Editor → paste `supabase/migrations/001_init.sql` → Run, then do the same with `002_rate_limit_review.sql`.
+1. supabase.com → New project. 2. SQL Editor → paste `supabase/migrations/001_init.sql` → Run, then do the same with `002_rate_limit_review.sql` and `003_twists_25_rounds.sql`.
 3. Authentication → Providers → turn on **Anonymous sign-ins** (guest play). Email is on by default; Google is optional (add your Google OAuth keys there).
 4. Project Settings → API: copy URL, anon key, service_role key into `.env.local`. **service_role is server-only; never prefix it with NEXT_PUBLIC_.**
 ## 3. GitHub
@@ -33,7 +33,9 @@ vercel.com → Add New Project → import the GitHub repo → add the 3 environm
 - **Host review**: hosts see Approve/Reject on flagged answers in the results screen; rejecting removes points and re-ranks.
 - **Word lists** (`lib/words.ts`): ~1,000 entries across 12 categories, with Nigerian/African names, foods and cities. Plain comma-separated strings — add more any time.
 - **Tests**: `npm test` (unit: engine + AI), `npm run test:e2e` (Playwright: first run `npx playwright install chromium`; the multiplayer test needs Supabase configured).
+## Twists (v2)
+From round 2 each round can bring a random twist (logic in `lib/twists.ts`, shared by solo and multiplayer, scored only on the server in multiplayer): Double Down ×2, Jackpot Category ×3, Risky Business (−5 per wrong answer), Lightning (half time), The Heist (leader loses 10 to the round winner), Copycat Curse (duplicates −5), Underdog's Day (+15 to last place) and two hidden Mystery Rounds (Fortune Wheel, Wordsmith) revealed after the buzzer. Round 1 is always standard; the last round is always the Grand Finale. Scores never drop below zero. Games support up to 25 rounds; letters recycle once all have been used.
 ## Known limitations
-Word lists are still finite, so unknown-but-valid answers are flagged for host review instead of rejected. Solo mode isn't saved to the global leaderboard. Realtime lobby chat, reconnect-by-token and a dedicated moderation dashboard are not built.
+Word lists are finite, so unknown-but-valid answers are flagged for host review. Solo mode isn't saved to the global leaderboard. Lobby chat and reconnect-by-token are not built.
 ## Troubleshooting
 "Could not start guest session" → enable Anonymous sign-ins. Rooms don't update live → check the migration's `alter publication supabase_realtime` line ran (a 4-second poll still keeps state fresh).

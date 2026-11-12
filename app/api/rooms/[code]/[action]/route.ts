@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { admin, allow, authUser } from '@/lib/admin';
 import { scoreRound } from '@/lib/engine';
+import { applyTwist, pickTwist, scoreOptsFor } from '@/lib/twists';
+import { timeFactor, type TwistId } from '@/lib/twistmeta';
 const LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY';
 const GRACE_MS = 3000; // network latency allowance for submissions
 const err = (m: string, s = 400) => NextResponse.json({ error: m }, { status: s });
@@ -65,9 +67,11 @@ export async function POST(req: Request, { params }: { params: { code: string; a
     if (room.status === 'finished' || (cur && cur.status === 'active')) return err('Cannot start now', 409);
     if (cur && cur.number >= room.rounds) return err('All rounds played', 409);
     const used = (await db.from('rounds').select('letter').eq('room_id', room.id)).data?.map((r) => r.letter) ?? [];
-    const pool = [...LETTERS].filter((l) => !used.includes(l));
-    const letter = pool[Math.floor(Math.random() * pool.length)] ?? LETTERS[0];
-    const { error } = await db.from('rounds').insert({ room_id: room.id, number: (cur?.number ?? 0) + 1, letter, ends_at: new Date(Date.now() + room.duration * 1000).toISOString() });
+    const pool = [...LETTERS].filter((l) => !used.includes(l)), pick = pool.length ? pool : [...LETTERS]; // letters recycle after all have been used
+    const letter = pick[Math.floor(Math.random() * pick.length)];
+    const { count: players } = await db.from('room_members').select('*', { count: 'exact', head: true }).eq('room_id', room.id).eq('kicked', false);
+    const number = (cur?.number ?? 0) + 1, tw = pickTwist(number, room.rounds, room.categories, players ?? 1);
+    const { error } = await db.from('rounds').insert({ room_id: room.id, number, letter, twist: tw.id, twist_data: tw.data, ends_at: new Date(Date.now() + room.duration * timeFactor(tw.id) * 1000).toISOString() });
     if (error) return err(error.code === '23505' ? 'Round already started' : error.message, 409);
     await db.from('rooms').update({ status: 'playing' }).eq('id', room.id);
     return NextResponse.json({ ok: true });
@@ -96,10 +100,13 @@ export async function POST(req: Request, { params }: { params: { code: string; a
     const { data: ans } = await db.from('answers').select('user_id,data').eq('round_id', round.id);
     const subs: Record<string, Record<string, string>> = {};
     (members ?? []).forEach((m) => (subs[m.user_id] = (ans?.find((a) => a.user_id === m.user_id)?.data as Record<string, string>) ?? {}));
-    const res = scoreRound(round.letter, room.categories, subs, { unique: room.unique_points });
-    const rows = Object.entries(res).flatMap(([uid, cells]) => Object.entries(cells).map(([category, c]) => ({ room_id: room.id, round_id: round.id, user_id: uid, category, answer: c.answer, status: c.status, points: c.points, reason: c.reason, flagged: c.flagged })));
+    const tid = (round.twist ?? 'normal') as TwistId, before = Object.fromEntries((members ?? []).map((m) => [m.user_id, m.total_score as number]));
+    const res = scoreRound(round.letter, room.categories, subs, scoreOptsFor(tid, room.unique_points));
+    const bonuses = applyTwist(tid, round.twist_data ?? {}, res, before);
+    const rows = [...Object.entries(res).flatMap(([uid, cells]) => Object.entries(cells).map(([category, c]) => ({ room_id: room.id, round_id: round.id, user_id: uid, category, answer: c.answer, status: c.status, points: c.points, reason: c.reason, flagged: c.flagged }))),
+      ...bonuses.map((b) => ({ room_id: room.id, round_id: round.id, user_id: b.userId, category: '✦ ' + b.label, answer: '', status: b.points >= 0 ? 'bonus' : 'penalty', points: b.points, reason: b.reason, flagged: false }))];
     await db.from('scores').insert(rows);
-    const totals = (members ?? []).map((m) => ({ m, total: m.total_score + Object.values(res[m.user_id] ?? {}).reduce((s, c) => s + c.points, 0) }));
+    const totals = (members ?? []).map((m) => ({ m, total: Math.max(0, m.total_score + Object.values(res[m.user_id] ?? {}).reduce((s, c) => s + c.points, 0) + bonuses.filter((b) => b.userId === m.user_id).reduce((s, b) => s + b.points, 0)) }));
     await Promise.all(totals.map((t) => db.from('room_members').update({ total_score: t.total }).eq('room_id', room.id).eq('user_id', t.m.user_id)));
     const last = round.number >= room.rounds;
     await db.from('rooms').update({ status: last ? 'finished' : 'between' }).eq('id', room.id);

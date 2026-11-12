@@ -4,7 +4,7 @@ import { admin, allow, authUser } from '@/lib/admin';
 const Body = z.object({
   nickname: z.string().trim().min(2).max(20), avatar: z.string().max(8).default('🧠'),
   categories: z.array(z.string().trim().min(2).max(24)).min(1).max(15), duration: z.number().int().min(20).max(300),
-  rounds: z.number().int().min(1).max(15), isPublic: z.boolean(), unique: z.number().int().min(1).max(100).default(10),
+  rounds: z.number().int().min(1).max(25), isPublic: z.boolean(), unique: z.number().int().min(1).max(100).default(10),
 });
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export async function POST(req: Request) {

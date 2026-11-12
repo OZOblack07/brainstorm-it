@@ -13,9 +13,9 @@ export default function Profile() {
   return (<div className="space-y-4"><div className="card space-y-3"><h1 className="text-3xl font-black">{p.avatar} {p.username || 'Player'}</h1>
     <p className="text-sm text-white/60">{u.is_anonymous ? 'Playing as a guest.' : u.email}</p>
     <input className="inp" placeholder="Username" maxLength={20} value={p.username ?? ''} onChange={(e) => setP({ ...p, username: e.target.value })} />
-    <div className="flex flex-wrap gap-2">{AVATARS.map((a) => <button key={a} onClick={() => setP({ ...p, avatar: a })} className={`rounded-lg px-2 py-1 text-2xl ${p.avatar === a ? 'bg-lime' : 'bg-white/10'}`}>{a}</button>)}</div>
-    <div className="flex gap-2"><button className="btn-lime" onClick={save}>Save profile</button>
-      {u.is_anonymous ? <Link href="/auth" className="btn-pink">Create account / log in</Link> : <button className="btn-ghost" onClick={async () => { await sb().auth.signOut(); location.href = '/'; }}>Log out</button>}</div>{msg && <p className="text-yellow-300">{msg}</p>}</div>
-    <div className="grid grid-cols-3 gap-3 text-center">{[['Games', hist.length], ['Wins', wins], ['Total points', total]].map(([k, v]) => <div key={k as string} className="card"><div className="text-3xl font-black text-lime">{v}</div><div className="text-sm text-white/60">{k}</div></div>)}</div>
+    <div className="flex flex-wrap gap-2">{AVATARS.map((a) => <button key={a} onClick={() => setP({ ...p, avatar: a })} className={`rounded-lg px-2 py-1 text-2xl ${p.avatar === a ? 'bg-brass' : 'bg-white/10'}`}>{a}</button>)}</div>
+    <div className="flex gap-2"><button className="btn-brass" onClick={save}>Save profile</button>
+      {u.is_anonymous ? <Link href="/auth" className="btn-brick">Create account / log in</Link> : <button className="btn-ghost" onClick={async () => { await sb().auth.signOut(); location.href = '/'; }}>Log out</button>}</div>{msg && <p className="text-brass">{msg}</p>}</div>
+    <div className="grid grid-cols-3 gap-3 text-center">{[['Games', hist.length], ['Wins', wins], ['Total points', total]].map(([k, v]) => <div key={k as string} className="card"><div className="text-3xl font-black text-brass">{v}</div><div className="text-sm text-white/60">{k}</div></div>)}</div>
     <div className="card space-y-2"><h2 className="font-black">Match history</h2>{!hist.length ? <p className="text-white/50">No finished games yet.</p> : hist.slice(0, 15).map((h) => <div key={h.id} className="flex justify-between rounded-xl bg-white/10 p-3"><span>#{h.rank} · room {h.room_id.slice(0, 4)}</span><span>{h.score} pts · {new Date(h.played_at).toLocaleDateString()}</span></div>)}</div></div>);
 }

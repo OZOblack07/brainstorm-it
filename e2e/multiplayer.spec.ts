@@ -9,8 +9,8 @@ test('two players: same disguised answer => duplicates, nobody scores', async ({
   await guest.goto('/room/' + code); await guest.getByPlaceholder('Your nickname').fill('GuestPlayer'); await guest.getByRole('button', { name: 'Join' }).click();
   await expect(host.getByText('GuestPlayer')).toBeVisible();
   await host.getByRole('button', { name: 'Start game' }).click();
-  await expect(host.locator('.text-8xl')).toBeVisible(); await expect(guest.locator('.text-8xl')).toBeVisible();
-  const L = (await host.locator('.text-8xl').innerText()).trim();
+  await expect(host.locator('[data-testid=letter]')).toBeVisible(); await expect(guest.locator('[data-testid=letter]')).toBeVisible();
+  const L = (await host.locator('[data-testid=letter]').innerText()).trim();
   const fill = async (pg: typeof host, word: string) => { for (const i of await pg.locator('input.inp').all()) await i.fill(word); await pg.getByRole('button', { name: 'Submit answers' }).click(); };
   await fill(host, `${L}ogg`); await fill(guest, `${L}OG`); // OGG vs OG: same underlying word
   await expect(host.getByText(/duplicate/).first()).toBeVisible({ timeout: 15000 });
