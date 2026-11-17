@@ -60,12 +60,14 @@ export const isKnown = (cat: string, raw: string) => { const c = catOf(cat); ret
 export const hasReference = (cat: string) => { const c = catOf(cat); return !!c && c !== 'name' && c !== 'thing'; };
 export const wordsFor = (cat: string, letter: string): string[] => { const c = catOf(cat); return c ? WORDS[c].filter((w) => letters(w)[0] === letter.toLowerCase()) : []; };
 
+/** Key under which a player-approved word is remembered. */
+export const learnedKey = (cat: string, raw: string) => `${catOf(cat) ?? normalize(cat)}:${key(raw)}`;
 export type Status = 'accepted' | 'duplicate' | 'invalid' | 'empty';
 export interface Cell { status: Status; points: number; reason: string; flagged: boolean; answer: string }
 export type Subs = Record<string, Record<string, string>>;
 export type Result = Record<string, Record<string, Cell>>;
 
-export function scoreRound(letter: string, cats: string[], subs: Subs, opts: { unique?: number; duplicate?: number } = {}): Result {
+export function scoreRound(letter: string, cats: string[], subs: Subs, opts: { unique?: number; duplicate?: number; learned?: Set<string> } = {}): Result {
   const U = opts.unique ?? 10, D = opts.duplicate ?? 0, L = letter.toLowerCase();
   const out: Result = {};
   const players = Object.keys(subs);
@@ -89,7 +91,7 @@ export function scoreRound(letter: string, cats: string[], subs: Subs, opts: { u
         reason: `${g.length} answers resolve to the same underlying word (${g.map((y) => `"${y.raw.trim()}"`).join(", ")}), so nobody gets unique points.${tampered(x.raw) ? ' Hidden or look-alike characters were detected and removed.' : ''}` }));
       else {
         const x = g[0]; singles.push(x);
-        const known = !hasReference(cat) || isKnown(cat, x.raw);
+        const known = !hasReference(cat) || isKnown(cat, x.raw) || !!opts.learned?.has(learnedKey(cat, x.raw));
         out[x.p][cat] = { status: 'accepted', points: U, flagged: !known, answer: x.raw,
           reason: known ? 'Unique answer.' : 'Unique answer, but not in our reference list for this category — flagged for host review.' };
       }

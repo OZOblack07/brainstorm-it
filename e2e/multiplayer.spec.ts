@@ -13,6 +13,11 @@ test('two players: same disguised answer => duplicates, nobody scores', async ({
   const L = (await host.locator('[data-testid=letter]').innerText()).trim();
   const fill = async (pg: typeof host, word: string) => { for (const i of await pg.locator('input.inp').all()) await i.fill(word); await pg.getByRole('button', { name: 'Submit answers' }).click(); };
   await fill(host, `${L}ogg`); await fill(guest, `${L}OG`); // OGG vs OG: same underlying word
+  for (const pg of [host, guest]) { // poll vote: every player must vote before results appear
+    await pg.getByRole('button', { name: 'Submit my votes' }).waitFor({ timeout: 20000 });
+    const all = pg.getByRole('button', { name: 'Mark all right' }); if (await all.isVisible()) await all.click();
+    await pg.getByRole('button', { name: 'Submit my votes' }).click();
+  }
   await expect(host.getByText(/duplicate/).first()).toBeVisible({ timeout: 15000 });
   await expect(guest.getByText(/same underlying word/).first()).toBeVisible();
 });

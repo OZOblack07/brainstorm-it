@@ -2,17 +2,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { sb, api, AVATARS } from '@/lib/client';
+import { ALL_TWISTS, TWIST_GROUPS, type TwistId } from '@/lib/twistmeta';
 const DEF = ['Name', 'Country', 'City', 'Animal', 'Food', 'Fruit', 'Thing', 'Occupation', 'Brand', 'Celebrity', 'Movie', 'Sport'];
 export default function Home() {
   const r = useRouter();
   const [nick, setNick] = useState(''), [av, setAv] = useState('🧠'), [cats, setCats] = useState(DEF.slice(0, 6)), [custom, setCustom] = useState('');
-  const [dur, setDur] = useState(60), [rounds, setRounds] = useState(5), [pub, setPub] = useState(true), [uniq, setUniq] = useState(10);
+  const [dur, setDur] = useState(60), [rounds, setRounds] = useState(5), [pub, setPub] = useState(true), [uniq, setUniq] = useState(10), [tws, setTws] = useState<TwistId[]>(ALL_TWISTS), [fc, setFc] = useState(false);
   const [code, setCode] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [open, setOpen] = useState<any[]>([]), [loaded, setLoaded] = useState(false);
   useEffect(() => { setNick(localStorage.getItem('bi_nick') ?? ''); sb().from('rooms').select('code,categories,rounds,duration').eq('is_public', true).eq('status', 'lobby').order('created_at', { ascending: false }).limit(12).then(({ data }) => { setOpen(data ?? []); setLoaded(true); }); }, []);
   const go = (p: string) => r.push(p);
   async function create() {
     setErr(''); setBusy(true); localStorage.setItem('bi_nick', nick);
-    try { const j = await api('/api/rooms', { nickname: nick, avatar: av, categories: cats, duration: dur, rounds, isPublic: pub, unique: uniq }); go('/room/' + j.code); }
+    try { const j = await api('/api/rooms', { nickname: nick, avatar: av, categories: cats, duration: dur, rounds, isPublic: pub, unique: uniq, twists: tws, firstClose: fc }); go('/room/' + j.code); }
     catch (e: any) { setErr(e.message); setBusy(false); }
   }
   const toggle = (c: string) => setCats((x) => (x.includes(c) ? x.filter((y) => y !== c) : [...x, c]));
@@ -31,6 +32,8 @@ export default function Home() {
         <div className="flex gap-2"><input className="inp" placeholder="Custom category" maxLength={24} value={custom} onChange={(e) => setCustom(e.target.value)} /><button className="btn-ghost" onClick={() => { if (custom.trim().length > 1) { setCats((x) => [...x, custom.trim()]); setCustom(''); } }}>Add</button></div>
         <div className="grid grid-cols-3 gap-2 text-sm"><label>Seconds<input type="number" className="inp" min={20} max={300} value={dur} onChange={(e) => setDur(+e.target.value)} /></label><label>Rounds<input type="number" className="inp" min={1} max={25} value={rounds} onChange={(e) => setRounds(+e.target.value)} /></label><label>Unique pts<input type="number" className="inp" min={1} max={100} value={uniq} onChange={(e) => setUniq(+e.target.value)} /></label></div>
         <label className="flex items-center gap-2"><input type="checkbox" checked={pub} onChange={(e) => setPub(e.target.checked)} /> Public room (listed for anyone)</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={fc} onChange={(e) => setFc(e.target.checked)} /> First player to submit closes the round for everyone</label>
+        <div><div className="mb-1 text-xs font-black uppercase tracking-widest text-paper/60">Twists in this game</div><div className="flex flex-wrap gap-2">{TWIST_GROUPS.map(([label, ids]) => { const on = ids.every((i) => tws.includes(i)); return <button key={label} onClick={() => setTws((x) => (on ? x.filter((i) => !ids.includes(i)) : [...new Set([...x, ...ids])]))} className={`rounded-full border-2 border-ink px-3 py-1 text-xs font-bold ${on ? 'bg-brass text-ink' : 'bg-paper/15 line-through'}`}>{label}</button>; })}</div></div>
         <button className="btn-brass w-full" disabled={busy || nick.trim().length < 2 || !cats.length} onClick={create}>{busy ? 'Creating…' : 'Create room'}</button>{err && <p className="text-flame">{err}</p>}</section>
       <section className="space-y-4"><div className="card space-y-3"><h2 className="text-xl font-black">Join with a code</h2>
         <input className="inp uppercase tracking-widest" placeholder="ROOM CODE" maxLength={5} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />

@@ -35,6 +35,10 @@ vercel.com → Add New Project → import the GitHub repo → add the 3 environm
 - **Tests**: `npm test` (unit: engine + AI), `npm run test:e2e` (Playwright: first run `npx playwright install chromium`; the multiplayer test needs Supabase configured).
 ## Twists (v2)
 From round 2 each round can bring a random twist (logic in `lib/twists.ts`, shared by solo and multiplayer, scored only on the server in multiplayer): Double Down ×2, Jackpot Category ×3, Risky Business (−5 per wrong answer), Lightning (half time), The Heist (leader loses 10 to the round winner), Copycat Curse (duplicates −5), Underdog's Day (+15 to last place) and two hidden Mystery Rounds (Fortune Wheel, Wordsmith) revealed after the buzzer. Round 1 is always standard; the last round is always the Grand Finale. Scores never drop below zero. Games support up to 25 rounds; letters recycle once all have been used.
+## Challenges and votes (v3)
+After each round any player can challenge an opponent's accepted answer (3 per round). The other players vote Accept/Reject for 20 seconds; the challenger counts as one Reject. Players who don't vote are voted for by the system: Accept if the answer is in the reference lists, Reject if it is not. In a 2-player room the system casts the deciding vote. A tie keeps the answer. Run `004_challenges_votes.sql` in Supabase.
+## Poll voting, twist picker, first-to-finish (v4)
+After every round all players vote Right or Wrong on every opponent answer. Results stay hidden until everyone has voted; the majority decides and a tie keeps the answer. Words that win the vote are saved as learned words, so the game recognises them next time. The host chooses which twists are in the game and whether the first player to submit closes the round for everyone. Run `005_voting_rooms_options.sql` in Supabase (it replaces the unused challenge tables from 004).
 ## Known limitations
 Word lists are finite, so unknown-but-valid answers are flagged for host review. Solo mode isn't saved to the global leaderboard. Lobby chat and reconnect-by-token are not built.
 ## Troubleshooting

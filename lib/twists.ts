@@ -1,14 +1,14 @@
 // Round twists: pure, testable logic shared by multiplayer (server) and solo mode.
 import { letters, type Result } from './engine';
-import type { TwistId } from './twistmeta';
+import { ALL_TWISTS, type TwistId } from './twistmeta';
 export interface Bonus { userId: string; points: number; label: string; reason: string }
 export interface Pick { id: TwistId; data: { category?: string } }
 const WEIGHTS: [TwistId, number][] = [['normal', 14], ['double', 12], ['jackpot', 12], ['risky', 12], ['lightning', 10], ['heist', 12], ['wheel', 12], ['wordsmith', 8], ['curse', 8], ['underdog', 8]];
 
-export function pickTwist(round: number, total: number, cats: string[], players: number, rnd: () => number = Math.random): Pick {
+export function pickTwist(round: number, total: number, cats: string[], players: number, allowed: TwistId[] = ALL_TWISTS, rnd: () => number = Math.random): Pick {
   if (round === 1) return { id: 'normal', data: {} };
-  if (round === total && total >= 3 && players >= 2) return { id: 'finale', data: {} };
-  const ok = WEIGHTS.filter(([id]) => !(id === 'underdog' && players < 3) && !(id === 'heist' && players < 2));
+  if (round === total && total >= 3 && players >= 2 && allowed.includes('finale')) return { id: 'finale', data: {} };
+  const ok = WEIGHTS.filter(([id]) => (id === 'normal' || allowed.includes(id)) && !(id === 'underdog' && players < 3) && !(id === 'heist' && players < 2));
   let r = rnd() * ok.reduce((s, [, w]) => s + w, 0), id: TwistId = ok[0][0];
   for (const [i, w] of ok) { r -= w; if (r < 0) { id = i; break; } }
   return { id, data: id === 'jackpot' ? { category: cats[Math.floor(rnd() * cats.length)] } : {} };

@@ -13,5 +13,7 @@ export const TWISTS: Record<TwistId, TwistInfo> = {
   underdog: { name: 'Underdog\'s Day', blurb: 'Whoever is in last place gets 15 points.', stamp: '+15' },
   finale: { name: 'Grand Finale', blurb: 'Double points, and the leader gets robbed. Everything can change.', stamp: 'FINALE' },
 };
+export const TWIST_GROUPS: [string, TwistId[]][] = [['Double Down', ['double']], ['Jackpot', ['jackpot']], ['Risky Business', ['risky']], ['Lightning', ['lightning']], ['The Heist', ['heist']], ['Copycat Curse', ['curse']], ['Underdog', ['underdog']], ['Mystery Rounds', ['wheel', 'wordsmith']], ['Grand Finale', ['finale']]];
+export const ALL_TWISTS: TwistId[] = TWIST_GROUPS.flatMap(([, ids]) => ids);
 export const REAL_NAME: Partial<Record<TwistId, string>> = { wheel: 'Fortune Wheel', wordsmith: 'Wordsmith' };
 export const timeFactor = (id: TwistId) => (id === 'lightning' ? 0.5 : 1);
